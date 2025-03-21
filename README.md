@@ -68,11 +68,11 @@ The **Blood Pressure Expert System** is a machine learning-based web application
 4. Click on disease names for more information on MedlinePlus.
 
 ### Some images of the system
-Home
-![image](https://github.com/user-attachments/assets/596b246d-05c0-41f2-887c-75f34c76252d)
+- Home
+  ![image](https://github.com/user-attachments/assets/596b246d-05c0-41f2-887c-75f34c76252d)
 
-Entering Details
-![image](https://github.com/user-attachments/assets/ac9567df-9909-4047-aed9-83597ae6f5e7)
+- Entering Details
+  ![image](https://github.com/user-attachments/assets/ac9567df-9909-4047-aed9-83597ae6f5e7)
 
-Prediction
-![image](https://github.com/user-attachments/assets/30a9ab8b-ca30-45d4-b390-809b44697455)
+- Prediction
+  ![image](https://github.com/user-attachments/assets/30a9ab8b-ca30-45d4-b390-809b44697455)
