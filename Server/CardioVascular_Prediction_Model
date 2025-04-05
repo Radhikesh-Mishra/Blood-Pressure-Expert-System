@@ -1,1 +1,162 @@
-https://colab.research.google.com/drive/1BDYznwPmj_7qDtKszlUYcUHP4kGYLcPB?usp=sharing
+import pandas as pd
+import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+from sklearn.metrics import roc_curve, auc
+from sklearn.model_selection import cross_val_score, learning_curve
+
+# Load the dataset
+file_path = "/content/Cardiovascular_Disease_Dataset.csv"
+df = pd.read_csv(file_path)
+
+# Drop the patientid column
+df.drop(columns=["patientid"], inplace=True)
+
+# Define features and target
+X = df.drop(columns=["target"])
+y = df["target"]
+
+# Identify numerical and categorical features
+num_features = ["age", "restingBP", "serumcholestrol", "maxheartrate", "oldpeak"]
+cat_features = ["gender", "chestpain", "fastingbloodsugar", "restingrelectro", "exerciseangia", "slope", "noofmajorvessels"]
+
+# Split dataset into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Define preprocessing steps
+num_transformer = StandardScaler()
+cat_transformer = OneHotEncoder(handle_unknown="ignore", sparse_output=False)  # Ensure output is dense
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", num_transformer, num_features),
+        ("cat", cat_transformer, cat_features)
+    ]
+)
+
+# Create a Pipeline with Preprocessing, PCA, and Logistic Regression
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("pca", PCA(n_components=0.95)),  # PCA to retain 95% variance
+    ("classifier", LogisticRegression(max_iter=500, random_state=42))
+])
+
+# Train the model
+pipeline.fit(X_train, y_train)
+
+# Save the trained pipeline
+model_filename = "model.pkl"
+with open(model_filename, "wb") as file:
+    pickle.dump(pipeline, file)
+
+print(f"✅ Model saved as {model_filename}")
+
+# Predict on test data
+y_pred = pipeline.predict(X_test)
+
+# Evaluate performance
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred)
+
+print(f"Accuracy: {accuracy:.4f}")
+print("Classification Report:\n", report)
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix")
+plt.show()
+
+import numpy as np
+from sklearn.model_selection import cross_val_score, learning_curve
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Cross-validation scores
+cv_scores = cross_val_score(pipeline, X_train, y_train, cv=5, scoring='accuracy')
+print(f"Cross-validation Accuracy Scores: {cv_scores}")
+print(f"Mean CV Accuracy: {np.mean(cv_scores):.4f}")
+print(f"Standard Deviation of CV Accuracy: {np.std(cv_scores):.4f}")
+
+# Learning Curve to check Bias-Variance tradeoff
+train_sizes, train_scores, test_scores = learning_curve(pipeline, X_train, y_train, cv=5, scoring='accuracy')
+train_mean = np.mean(train_scores, axis=1)
+test_mean = np.mean(test_scores, axis=1)
+
+plt.figure()
+plt.plot(train_sizes, train_mean, label='Training Score', marker='o')
+plt.plot(train_sizes, test_mean, label='Validation Score', marker='s')
+plt.xlabel("Training Sample Size")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.title("Learning Curve")
+plt.grid()
+plt.show()
+
+# Overfitting Check
+train_acc = pipeline.score(X_train, y_train)
+test_acc = pipeline.score(X_test, y_test)
+print(f"Training Accuracy: {train_acc:.4f}")
+print(f"Test Accuracy: {test_acc:.4f}")
+if train_acc - test_acc > 0.05:
+    print("⚠️ Possible overfitting detected!")
+
+# ROC Curve
+y_proba = pipeline.predict_proba(X_test)[:, 1]
+fpr, tpr, _ = roc_curve(y_test, y_proba)
+roc_auc = auc(fpr, tpr)
+
+plt.figure()
+plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.4f})')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.legend()
+plt.title("ROC Curve")
+plt.grid()
+plt.show()
+
+print(f"AUC Score: {roc_auc:.4f}")
+
+# Feature Importance without PCA
+log_reg_no_pca = LogisticRegression(max_iter=500, random_state=42)
+pipeline_no_pca = Pipeline([
+    ("preprocessor", preprocessor),
+    ("classifier", log_reg_no_pca)
+])
+
+pipeline_no_pca.fit(X_train, y_train)
+
+# Extract feature importance
+feature_importance = np.abs(pipeline_no_pca.named_steps['classifier'].coef_).flatten()
+
+# Get transformed feature names
+cat_encoder = pipeline_no_pca.named_steps['preprocessor'].named_transformers_['cat']
+cat_feature_names = cat_encoder.get_feature_names_out(cat_features)  # Expanded categorical feature names
+
+feature_names = num_features + list(cat_feature_names)  # Combine numerical and categorical feature names
+
+if len(feature_names) != len(feature_importance):  # Check for mismatch
+    print(f"Feature count mismatch! Expected {len(feature_names)}, but got {len(feature_importance)}")
+else:
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=feature_importance, y=feature_names)
+    plt.xlabel("Importance")
+    plt.ylabel("Feature")
+    plt.title("Feature Importance")
+    plt.show()
+
+
+-- ""
